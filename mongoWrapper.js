@@ -12,6 +12,7 @@ module.exports.server = function(params) {
 
   db = new Db(dbName, new Server(params.hostname, params.port));
   return {
+    find: findWrap(wrapperServer),
     updateOne: updateOnewrap(wrapperServer),
     deleteOne: deleteOneWrap(wrapperServer),
     db: db
@@ -28,17 +29,31 @@ module.exports.client = function(params) {
 
   url = "mongodb://" + uri + ":" + port + "/" + dbName;
   return {
+    find: findWrap(wrapperClient),
     updateOne: updateOneWrap(wrapperClient),
     deleteOne: deleteOneWrap(wrapperClient),
     connect: MongoClient.connect
   }
 }
 
+function findWrap(wrapFunc) {
+  return function find(coll, doc, callback) {
+    wrapFunc(function(db, cb) {
+      db.collection(coll).find(doc).toArray(function(err, docs) {
+        if (err)
+          return cb(err);
+
+        cb(null, docs);
+      });
+    }, callback);
+  };
+}
+
 function updateOneWrap(wrapFunc) {
   return function updateOne(coll, doc, callback) {
     var id = doc.id || doc["$set"].id;
     wrapFunc(function(db, cb) {
-      db.collection(coll).updateOne({id: id}, doc, {update: true},
+      db.collection(coll).updateOne({id: id}, doc, {upsert: true},
         function(err, results) {
           if (err)
             return cb(err);
@@ -52,12 +67,11 @@ function updateOneWrap(wrapFunc) {
 function deleteOneWrap(wrapFunc) {
   return function deleteOne(coll, filter, callback) {
     wrapFunc(function(db, cb) {
-      db.collection(coll).deleteOne(filter, {update: true},
-        function(err, results) {
-          if (err)
-            return cb(err);
+      db.collection(coll).deleteOne(filter, function(err, results) {
+        if (err)
+          return cb(err);
 
-          cb(null, results);
+        cb(null, results);
       });
     }, callback);
   };
