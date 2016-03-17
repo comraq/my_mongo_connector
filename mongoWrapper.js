@@ -37,9 +37,9 @@ module.exports.client = function(params) {
 }
 
 function findWrap(wrapFunc) {
-  return function find(coll, doc, callback) {
+  return function find(coll, doc, options, callback) {
     wrapFunc(function(db, cb) {
-      db.collection(coll).find(doc).toArray(function(err, docs) {
+      db.collection(coll).find(doc, options).toArray(function(err, docs) {
         if (err)
           return cb(err);
 
