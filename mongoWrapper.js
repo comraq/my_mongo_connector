@@ -51,11 +51,9 @@ function findWrap(wrapFunc) {
 
 function updateOneWrap(wrapFunc) {
   return function updateOne(coll, key, doc, callback) {
-    //var id = doc.id || doc["$set"].id;
     var filter = {};
     filter[key] = doc[key] || doc["$set"][key];
     wrapFunc(function(db, cb) {
-      //db.collection(coll).updateOne({id: id}, doc, {upsert: true},
       db.collection(coll).updateOne(filter, doc, {upsert: true},
         function(err, results) {
           if (err)
