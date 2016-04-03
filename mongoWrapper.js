@@ -3,6 +3,65 @@ var MongoClient = require("mongodb").MongoClient,
     Server = require("mongodb").Server,
     assert = require("assert");
 
+/*
+ * This module exposes 2 factory methods:
+ * - mongoWrapper.server(params)
+ * - mongoWrapper.client(params)
+ *
+ * - where params is an optional object expecting any number of
+ *   the following key-value pairs;
+ *   {
+ *     hostname: (Type: String) host url of the db server,
+ *     port: (Type: Number) integer port number,
+ *     dbName: (Type: String) the desired database to use,
+ *     user: (Type: String) username if using the client method,
+ *     password: (Type: String) password if using the client method
+ *   }
+ */
+
+/*
+ * Both server and client methods follows a factory model by returning
+ * either a mongo server (root) connection instance or client connection
+ *
+ * Both instances contains the following properties:
+ * - common pre-wrapped query methods such as:
+ *   - find
+ *   - updateOne
+ *   - deleteOne
+ * - wrapFunc a wrapper function to handle db/connection boilerplate
+ *   open/close procedures
+ * - db (reference to the raw db instance only for server connection)
+ * - connect (reference to the connect method only for client connection)
+ *   - the above respective db/connect properties can be used directly
+ *     to interface with the MongoDB server just as using the
+ *     nodejs native mongo driver
+ */
+
+/*
+ * wrapFunc is a function which takes 2 parameters as such:
+ * - function wrapFunc(method, callback)
+ *
+ * --> method is the first function to be executed
+ *     when db conneciton is open with parameters:
+ *     - function method(db, cb)
+ *     --> where db is a reference to the opened db instance
+ *     --> cb is the callback to call after method is done
+ *         with the opened db instance taking the following parameters:
+ *         - function cb(err, results)
+ *         --> pass in the error if encountered during the db query
+ *         --> else call cb(null, results) passing in any result
+ *             to be passed down to the final callback
+ *
+ * --> callback is the final function to be called and should expect
+ *     the following parameters:
+ *     - function callback(err, results)
+ *     --> where err is any error encountered during this entire process,
+ *         this callback is immediately invoked with a non-null error if
+ *         any error is encountered
+ *     --> if all successful, callback will be called with err === null and
+ *         any results passed in from the method
+ */
+
 var db, url;
 module.exports.server = function(params) {
   params = params || {};
@@ -10,10 +69,11 @@ module.exports.server = function(params) {
       port = params.port || 27017,
       dbName = params.dbName || "my_default_db";
 
-  db = new Db(dbName, new Server(params.hostname, params.port));
+  db = new Db(dbName, new Server(hostname, port));
   return {
+    wrapFunc: wrapperServer,
     find: findWrap(wrapperServer),
-    updateOne: updateOnewrap(wrapperServer),
+    updateOne: updateOneWrap(wrapperServer),
     deleteOne: deleteOneWrap(wrapperServer),
     db: db
   }
@@ -21,14 +81,16 @@ module.exports.server = function(params) {
 
 module.exports.client = function(params) {
   params = params || {};
-  var user = params.user || "my_mongo_admin",
-      password = params.password || "mymongopass"
+  var hostname = params.hostname || "ds023088.mlab.com",
       port = params.port || 23088,
-      uri = user + ":" + password + "@ds023088.mlab.com",
+      user = params.user || "my_mongo_admin",
+      password = params.password || "mymongopass"
+      uri = user + ":" + password + "@" + hostname,
       dbName = params.dbName || "my_default_db";
 
   url = "mongodb://" + uri + ":" + port + "/" + dbName;
   return {
+    wrapFunc: wrapperClient,
     find: findWrap(wrapperClient),
     updateOne: updateOneWrap(wrapperClient),
     deleteOne: deleteOneWrap(wrapperClient),
