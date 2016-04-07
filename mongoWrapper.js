@@ -30,11 +30,12 @@ var MongoClient = require("mongodb").MongoClient,
  *   - deleteOne
  * - wrapFunc a wrapper function to handle db/connection boilerplate
  *   open/close procedures
- * - db (reference to the raw db instance only for server connection)
- * - connect (reference to the connect method only for client connection)
- *   - the above respective db/connect properties can be used directly
- *     to interface with the MongoDB server just as using the
- *     nodejs native mongo driver
+ * - for both connections, an open method is exposed with the signature:
+ *   function open(err, db)
+ *   - err is the Error in opening/connecting to the database server, null
+ *     on success
+ *   - db is the db instance upon a successful db.open or client.connect
+ *   NOTE: User should/must remember to call db.close() upon finish
  */
 
 /*
@@ -75,7 +76,7 @@ module.exports.server = function(params) {
     find: findWrap(wrapperServer),
     updateOne: updateOneWrap(wrapperServer),
     deleteOne: deleteOneWrap(wrapperServer),
-    db: db
+    open: db.open
   }
 };
 
@@ -94,7 +95,7 @@ module.exports.client = function(params) {
     find: findWrap(wrapperClient),
     updateOne: updateOneWrap(wrapperClient),
     deleteOne: deleteOneWrap(wrapperClient),
-    connect: MongoClient.connect
+    open: MongoClient.connect.bind(null, url)
   }
 }
 
