@@ -82,10 +82,10 @@ module.exports.server = function(params) {
 
 module.exports.client = function(params) {
   params = params || {};
-  var hostname = params.hostname || "ds023088.mlab.com",
-      port = params.port || 23088,
-      user = params.user || "my_mongo_admin",
-      password = params.password || "mymongopass",
+  var hostname = params.hostname || "localhost",
+      port = params.port || 27017,
+      user = params.user || "admin",
+      password = params.password || "password",
       uri = user + ":" + password + "@" + hostname,
       dbName = params.dbName || "my_default_db";
 
