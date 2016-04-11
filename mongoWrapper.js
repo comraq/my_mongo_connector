@@ -81,11 +81,15 @@ module.exports.server = function(params) {
 };
 
 module.exports.client = function(params) {
+  if (!params || !params.user || !params.password)
+    throw new Error ("Must supply user or password for client mongo"
+                     + " connection or use the server connection!");
+
   params = params || {};
   var hostname = params.hostname || "localhost",
       port = params.port || 27017,
-      user = params.user || "admin",
-      password = params.password || "password",
+      user = params.user,
+      password = params.password,
       uri = user + ":" + password + "@" + hostname,
       dbName = params.dbName || "my_default_db";
 
